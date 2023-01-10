@@ -234,9 +234,11 @@ stanzaStatus(const int code, const InfoStanzaRepo *const stanzaData, Variant *st
     KeyValue *backupLockKv = kvPutKv(lockKv, STATUS_KEY_LOCK_BACKUP_VAR);
     kvPut(backupLockKv, STATUS_KEY_LOCK_BACKUP_HELD_VAR, VARBOOL(stanzaData->backupLockHeld));
 
-    if (stanzaData->percentComplete != NULL && cfgOptionStrId(cfgOptOutput) != CFGOPTVAL_OUTPUT_JSON)
-        kvPut(backupLockKv, STATUS_KEY_LOCK_BACKUP_PERCENT_COMPLETE_VAR, stanzaData->percentComplete);
-
+    if (stanzaData->percentComplete != NULL){
+        const String *const percentageCompleteStr = strNewFmt("%u.%02u", varUInt(stanzaData->percentComplete) / 100, varUInt(stanzaData->percentComplete) % 100);
+        kvPut(backupLockKv, STATUS_KEY_LOCK_BACKUP_PERCENT_COMPLETE_VAR, VARSTR(percentageCompleteStr));
+    }
+    
     FUNCTION_TEST_RETURN_VOID();
 }
 
@@ -1479,9 +1481,7 @@ infoRender(void)
                     KeyValue *backupLockKv = varKv(kvGet(lockKv, STATUS_KEY_LOCK_BACKUP_VAR));
                     bool backupLockHeld = varBool(kvGet(backupLockKv, STATUS_KEY_LOCK_BACKUP_HELD_VAR));
                     const Variant *const percentComplete = kvGet(backupLockKv, STATUS_KEY_LOCK_BACKUP_PERCENT_COMPLETE_VAR);
-                    const String *const percentCompleteStr = percentComplete != NULL ?
-                        strNewFmt(" - %u.%02u%% complete", varUInt(percentComplete) / 100, varUInt(percentComplete) % 100) :
-                        EMPTY_STR;
+                    const String *percentCompleteStr = percentComplete != NULL ? strNewFmt(" - %s%% complete", strZ(varStr(percentComplete))) : EMPTY_STR;
 
                     if (statusCode != INFO_STANZA_STATUS_CODE_OK)
                     {
